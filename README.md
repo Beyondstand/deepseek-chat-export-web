@@ -10,6 +10,16 @@
 
 ---
 
+## 给用户的一段话（可直接复制转发）
+
+> 打开 https://beyondstand.github.io/deepseek-chat-export-web/
+> ① 把页面上的 **「📚 DeepSeek 一键导出」** 书签拖到浏览器书签栏；
+> ② 登录 chat.deepseek.com，点一下该书签；
+> ③ 之后在任意对话里发送 **「导出」** → 当前对话自动下载为 HTML 文件；发送 **「导出链接」** → 额外生成一个**读一次即删**的在线查看链接，可发给 AI 读取。
+> 详细教程见工具页内说明与本仓库 README。
+
+---
+
 ## 三步上手
 
 1. 用浏览器打开本工具的网页地址（GitHub Pages / Cloudflare Pages 部署后的固定链接）；
