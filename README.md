@@ -56,13 +56,26 @@
 - 会话数据经 `postMessage` 直达你打开的工具页，无任何第三方服务器；
 - 工具页无统计、无追踪，除拉取数据外可断网使用。
 
-## 部署到 GitHub Pages
+## 部署（任选一个静态托管，二选一即可）
+
+### 方式一：GitHub Pages
 
 1. 仓库推到自己 GitHub 账号；
 2. **Settings → Pages → Source** 选 `Deploy from a branch`，分支 `main` / `/ (root)`；
 3. 约 1 分钟后 `https://<用户名>.github.io/<仓库名>/` 即为工具地址，页面会自动生成指向自己的书签链接。
 
-可选：绑自定义域名。
+### 方式二：Cloudflare Pages
+
+1. 登录 [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages → Create → Pages**；
+2. 两种接法任选：
+   - **Connect to Git**：授权 GitHub 选中本仓库 → 构建配置**全部留空**（纯静态无需构建）→ 保存部署；
+   - **Upload assets**：直接把 `index.html`、`app.js`、`shared.js`、`style.css`、`demo-data.js`、`tools/` 拖进去上传；
+3. 得到 `https://<项目名>.pages.dev`，打开后拖一次书签即可使用。
+
+两者都支持绑定自定义域名；部署后书签链接由页面按当前地址自动生成，无需改代码。
+
+> 临时演示也可以不部署：用 `cloudflared tunnel --url http://127.0.0.1:8766` 生成一个临时公网地址，
+> 用完即关（注意这会把本地服务短暂暴露到公网）。
 
 ## 兜底方案（不想用触发词）
 
