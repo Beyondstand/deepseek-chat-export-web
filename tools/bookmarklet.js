@@ -395,26 +395,64 @@
     exportCurrentChat(prompt, sid);
   }
 
-  // 只观察：克隆响应读完后照原样返回，不影响页面自己的流式渲染。
+  // 只观察：请求发出后照原样进行，不影响页面自己的逻辑与流式渲染。
+  // DeepSeek 网页版的 API 客户端以 XMLHttpRequest 为主、fetch 为辅，两者都挂钩。
   if (!window.__dsBmPatched) {
     window.__dsBmPatched = true;
-    window.fetch = function (input, init) {
+
+    // --- fetch ---
+    window.fetch = async function (input, init) {
       var url = typeof input === "string" ? input : (input && input.url) || "";
       var isCompletion = url.indexOf("/api/v0/chat/completion") !== -1;
       var body = isCompletion && init && typeof init.body === "string" ? init.body : "";
+      var reqObj = null;
+      if (isCompletion && !body && typeof Request !== "undefined" && input instanceof Request) {
+        try { body = await input.clone().text(); } catch (_) {}
+        reqObj = input;
+      }
       if (body && HINT) {
         var hinted = appendHint(body);
-        if (hinted !== body) { init = Object.assign({}, init || {}, { body: hinted }); body = hinted; }
-      }
-      return origFetch(input, init).then(function (res) {
-        if (isCompletion && body) {
-          res.clone().text().catch(function () {}).then(function () {
-            try { onCompletion(body); } catch (_) {}
-          });
+        if (hinted !== body) {
+          if (reqObj) { try { input = new Request(reqObj, { body: hinted }); } catch (_) {} }
+          else { init = Object.assign({}, init || {}, { body: hinted }); }
+          body = hinted;
         }
-        return res;
-      });
+      }
+      var res = await origFetch(input, init);
+      if (isCompletion && body) {
+        res.clone().text().catch(function () {}).then(function () {
+          try { onCompletion(body); } catch (_) {}
+        });
+      }
+      return res;
     };
+
+    // --- XMLHttpRequest ---
+    var origOpen = XMLHttpRequest.prototype.open;
+    var origSend = XMLHttpRequest.prototype.send;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      this.__dsUrl = String(url || "");
+      return origOpen.apply(this, arguments);
+    };
+    XMLHttpRequest.prototype.send = function (body) {
+      var xhr = this;
+      var isCompletion = (xhr.__dsUrl || "").indexOf("/api/v0/chat/completion") !== -1;
+      if (isCompletion && typeof body === "string" && body) {
+        if (HINT) {
+          try {
+            var hinted = appendHint(body);
+            if (hinted !== body) body = hinted;
+          } catch (_) {}
+        }
+        xhr.addEventListener("loadend", function () {
+          try { onCompletion(body); } catch (_) {}
+        });
+      }
+      return origSend.call(this, body);
+    };
+
+    // 诊断信号：确认监听已装好（若看不到这条，说明书签没在 DeepSeek 页面生效）
+    toast("✅ 导出监听已开启：发送「导出」即可自动保存（本页面整页刷新后需再点一次书签）");
   }
 
   /* ---------------- A. 点击书签：全量会话推送到工具页 ---------------- */
