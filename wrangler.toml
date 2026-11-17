@@ -1,0 +1,5 @@
+# 一次性查看链接 Worker 的部署配置（Cloudflare Workers Builds / GitHub 导入用）
+# 部署后还需在 Worker 设置里绑定 KV 命名空间：变量名 FILES
+name = "ds-once"
+main = "tools/worker.js"
+compatibility_date = "2026-11-01"
