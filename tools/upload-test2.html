@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>上传服务探测 2</title>
+<pre id="out">RUNNING…</pre>
+<script>
+(async () => {
+  const out = document.getElementById("out");
+  const log = [];
+  const txt = "hello cors probe\n第二行";
+  const html = "<!doctype html><meta charset=utf-8><title>t</title><h1>cors probe</h1>";
+
+  async function t(name, fn) {
+    try { log.push(name + ": " + (await fn())); }
+    catch (e) { log.push(name + ": FETCH-ERROR " + (e && e.message ? e.message : String(e))); }
+  }
+
+  await t("tmpfiles(.txt)", async () => {
+    const fd = new FormData();
+    fd.append("file", new Blob([txt], { type: "text/plain" }), "probe.txt");
+    const r = await fetch("https://tmpfiles.org/api/v1/upload", { method: "POST", body: fd });
+    return "HTTP " + r.status + " | " + (await r.text()).slice(0, 160);
+  });
+
+  await t("transfer.sh(PUT html)", async () => {
+    const r = await fetch("https://transfer.sh/probe.html", { method: "PUT", body: html });
+    return "HTTP " + r.status + " | " + (await r.text()).slice(0, 160);
+  });
+
+  await t("bashupload(PUT html)", async () => {
+    const r = await fetch("https://bashupload.com/probe.html", { method: "PUT", body: html });
+    return "HTTP " + r.status + " | " + (await r.text()).slice(0, 160);
+  });
+
+  await t("paste.rs(raw)", async () => {
+    const r = await fetch("https://paste.rs/", { method: "POST", body: txt, headers: { "Content-Type": "text/plain" } });
+    return "HTTP " + r.status + " | " + (await r.text()).slice(0, 160);
+  });
+
+  out.textContent = log.join("\n\n");
+})();
+</script>

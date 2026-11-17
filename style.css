@@ -150,6 +150,7 @@ button.primary:hover { background: #1d4ed8; }
 .fallback-actions { display: flex; gap: 8px; margin-top: 10px; }
 
 #toast {
+  white-space: pre-line;
   position: fixed;
   left: 50%;
   bottom: 28px;

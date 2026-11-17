@@ -16,7 +16,8 @@
 (function () {
   "use strict";
   var TOOL_URL = "__TOOL_URL__";           // 工具页地址
-  var TRIGGERS = __TRIGGERS_JSON__;        // 触发词数组，如 ["导出","导出txt"]
+  var TRIGGERS = __TRIGGERS_JSON__;        // 触发词数组，如 ["导出","导出txt","导出链接"]
+  var WORKER_URL = "__WORKER_URL__";       // 可选：自建「读完即删」Worker；留空则用公共 TXT 临时服务
 
   /* ---------------- 小工具 ---------------- */
 
@@ -242,6 +243,49 @@
     return L.join("\n");
   }
 
+  /* ---------------- 在线查看链接（仅当触发词含「链接/分享」时才调用） ---------------- */
+
+  /** 公共方案：tmpfiles.org（TXT，60 分钟有效；免费服务禁止 HTML 类型） */
+  function uploadTmpfiles(text) {
+    var fd = new FormData();
+    fd.append("file", new Blob([text], { type: "text/plain" }),
+              "deepseek-" + stamp() + ".txt");
+    return fetch("https://tmpfiles.org/api/v1/upload", { method: "POST", body: fd })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (o) {
+        if (!o.ok || !o.j || o.j.status !== "success" || !o.j.data || !o.j.data.url)
+          throw new Error((o.j && o.j.message) || "上传失败");
+        return o.j.data.url.replace(".org/", ".org/dl/"); // 换成直链，模型/浏览器都能读
+      });
+  }
+
+  /** 自建方案：Cloudflare Worker（HTML，被读取一次后自动删除） */
+  function uploadWorker(html) {
+    return fetch(WORKER_URL.replace(/\/+$/, "") + "/up", { method: "POST", body: html })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (o) {
+        if (!o.ok || !o.j || !o.j.ok || !o.j.url) throw new Error("Worker 上传失败");
+        return o.j.url;
+      });
+  }
+
+  function copyText(t) {
+    try { if (navigator.clipboard) navigator.clipboard.writeText(t).catch(function () {}); } catch (_) {}
+  }
+
+  function makeLink(htmlContent, txtContent, fmt) {
+    var worker = fmt === "html" && WORKER_URL;
+    var task = worker ? uploadWorker(htmlContent) : uploadTmpfiles(txtContent);
+    task.then(function (u) {
+      toast((fmt === "html" && WORKER_URL)
+        ? "🔗 在线查看链接（被读取一次后自动删除）：\n" + u
+        : "🔗 在线查看链接（纯文本 · 60 分钟内有效）：\n" + u);
+      copyText(u);
+    }).catch(function (e) {
+      toast("⚠ 链接生成失败：" + ((e && e.message) || e), true);
+    });
+  }
+
   /* ---------------- 下载与页面内确认 ---------------- */
 
   function download(name, content, mime) {
@@ -264,7 +308,7 @@
       el.id = id;
       el.style.cssText = "position:fixed;right:20px;bottom:20px;z-index:2147483647;"
         + "background:#065f46;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;"
-        + "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;"
+        + "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;white-space:pre-line;"
         + "box-shadow:0 4px 16px rgba(0,0,0,.4);max-width:340px;transition:opacity .5s;";
       document.body.appendChild(el);
     }
@@ -301,15 +345,18 @@
     }
     if (!sid) { toast("⚠ 找不到当前会话 ID，无法导出", true); return; }
     var fmt = (/(txt|文本)/i.test(prompt)) ? "txt" : "html";
+    var wantLink = /(链接|分享|share)/i.test(prompt);
     api("/api/v0/chat/history_messages?chat_session_id=" + encodeURIComponent(sid) + "&cache_version=0")
       .then(function (biz) {
         var s = normalize(biz.chat_session || {}, biz.chat_messages || []);
         if (!s.id) s.id = sid;
         if (!s.title || s.title === "(未命名会话)") s.title = "会话";
+        var content = fmt === "html" ? buildHtml(s) : buildTxt(s);
         var name = "DeepSeek_" + sanitize(s.title) + "_" + stamp() + "." + fmt;
-        download(name, fmt === "html" ? buildHtml(s) : buildTxt(s),
+        download(name, content,
                  fmt === "html" ? "text/html;charset=utf-8" : "text/plain;charset=utf-8");
         toast("✅ 已导出当前对话：" + name + "（" + s.messages.length + " 条消息）");
+        if (wantLink) makeLink(content, buildTxt(s), fmt);
       })
       .catch(function (e) {
         toast("⚠ 导出失败：" + ((e && e.message) || e), true);

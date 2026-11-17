@@ -101,10 +101,12 @@
       + fmtTime(s.updated_at) + "</div></div>"
       + '<div class="pv-actions">'
       + '<button id="btn-html" class="primary">⬇ 导出 HTML</button>'
-      + '<button id="btn-txt">⬇ 导出 TXT</button></div>'
+      + '<button id="btn-txt">⬇ 导出 TXT</button>'
+      + '<button id="btn-link">🔗 生成在线链接</button></div>'
       + '<div class="pv-body">' + DSExp.renderMessagesHtml(s.messages) + "</div>";
     $("#btn-html").onclick = () => exportOne(s, "html");
     $("#btn-txt").onclick = () => exportOne(s, "txt");
+    $("#btn-link").onclick = () => makeLinkPage(s);
   }
 
   // ---------------- 导出 ----------------
@@ -212,7 +214,48 @@
   // ---------------- 书签链接生成 ----------------
 
   const DEFAULT_TRIGGERS = ["导出", "导出HTML", "导出html", "导出网页", "导出txt", "导出TXT",
-    "导出文本", "导出对话", "导出记录", "导出当前对话", "/导出", "#导出", "/export"];
+    "导出文本", "导出对话", "导出记录", "导出当前对话",
+    "导出链接", "导出并分享", "导出txt链接", "生成链接",
+    "/导出", "#导出", "/export"];
+
+  const getWorkerUrl = () => {
+    try { return (localStorage.getItem("dsWorkerUrl") || "").trim(); } catch (_) { return ""; }
+  };
+
+  /** 公共方案：tmpfiles.org（TXT，60 分钟有效） */
+  function uploadTmpfiles(text) {
+    const fd = new FormData();
+    fd.append("file", new Blob([text], { type: "text/plain" }),
+              "deepseek-" + DSExp.stampForFilename() + ".txt");
+    return fetch("https://tmpfiles.org/api/v1/upload", { method: "POST", body: fd })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok || !j || j.status !== "success" || !(j.data && j.data.url))
+          throw new Error((j && j.message) || "上传失败");
+        return j.data.url.replace(".org/", ".org/dl/");
+      });
+  }
+
+  /** 自建方案：Cloudflare Worker（HTML，被读取一次后自动删除） */
+  function uploadWorkerTo(base, html) {
+    return fetch(base.replace(/\/+$/, "") + "/up", { method: "POST", body: html })
+      .then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (!ok || !j || !j.ok || !j.url) throw new Error("Worker 上传失败");
+        return j.url;
+      });
+  }
+
+  function makeLinkPage(s) {
+    const worker = getWorkerUrl();
+    toast("正在生成链接…");
+    const task = worker ? uploadWorkerTo(worker, DSExp.buildHtml(s))
+                        : uploadTmpfiles(DSExp.buildTxt(s));
+    task.then((u) => {
+      try { navigator.clipboard && navigator.clipboard.writeText(u); } catch (_) {}
+      toast((worker ? "🔗 链接已复制（读取一次即删）：\n" : "🔗 链接已复制（TXT · 60 分钟）：\n") + u);
+    }).catch((e) => toast("⚠ 链接生成失败：" + (e && e.message || e), true));
+  }
 
   async function setupBookmarkletLink() {
     const link = $("#bm-link"), srcBox = $("#bm-code"), input = $("#trigger-input");
@@ -229,13 +272,23 @@
       const custom = (input.value || "").split(/[,，]/).map((s) => s.trim()).filter(Boolean);
       const triggers = custom.length ? custom : DEFAULT_TRIGGERS;
       const code = src.split("__TOOL_URL__").join(toolUrl)
-                      .split("__TRIGGERS_JSON__").join(JSON.stringify(triggers));
+                      .split("__TRIGGERS_JSON__").join(JSON.stringify(triggers))
+                      .split("__WORKER_URL__").join(getWorkerUrl());
       link.href = "javascript:" + encodeURIComponent(code);
       link.style.display = "";
     };
     build();
     let timer = null;
     input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(build, 300); });
+
+    const wInput = $("#worker-url");
+    if (wInput) {
+      try { wInput.value = localStorage.getItem("dsWorkerUrl") || ""; } catch (_) {}
+      wInput.addEventListener("input", () => {
+        try { localStorage.setItem("dsWorkerUrl", wInput.value.trim()); } catch (_) {}
+        build();
+      });
+    }
   }
 
   // ---------------- 演示模式 ----------------

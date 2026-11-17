@@ -30,13 +30,16 @@
     <h3>💬 聊天内一句话导出（点过书签后持续生效）</h3>
     <p>在 DeepSeek 输入框发送触发词（默认 <code>导出</code>），本轮回答结束后会<strong>自动把当前对话下载为 HTML</strong> 并在页面右下角弹出确认；发送 <code>导出txt</code> 则下载 TXT。触发词会作为普通消息发给模型（模型回一句无关的话是正常的）。</p>
     <label for="trigger-input">自定义触发词（逗号分隔，留空则用默认）：</label><br>
-    <input id="trigger-input" type="text" value="导出,导出HTML,导出html,导出网页,导出txt,导出TXT,导出文本,导出对话,导出记录,导出当前对话,/导出,#导出,/export">
+    <input id="trigger-input" type="text" value="导出,导出HTML,导出html,导出网页,导出txt,导出TXT,导出文本,导出对话,导出记录,导出当前对话,导出链接,导出并分享,生成链接,/导出,#导出,/export">
     <p class="hint">① 改完触发词，把上面的书签链接<strong>重新拖一次</strong>才生效；② DeepSeek 页面整页刷新后，再点一次书签即可恢复自动触发。</p>
+    <label for="worker-url">在线链接 Worker 地址（可选；填写后「导出链接」生成 HTML 且被读取一次即删，详见 README）：</label><br>
+    <input id="worker-url" type="text" placeholder="https://你的名字.workers.dev">
     <div class="prompts">
       <span>推荐提示词（点一下复制）：</span>
       <button class="prompt" data-prompt="导出">导出</button>
       <button class="prompt" data-prompt="导出当前对话，并在回复里列出接下来的操作步骤">导出当前对话，并列出后续操作</button>
       <button class="prompt" data-prompt="导出txt">导出txt</button>
+      <button class="prompt" data-prompt="导出链接">导出链接</button>
     </div>
   </div>
 </section>

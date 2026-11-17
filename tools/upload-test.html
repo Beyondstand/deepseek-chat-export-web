@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>上传服务 CORS 探测</title>
+<pre id="out">RUNNING…</pre>
+<script>
+(async () => {
+  const out = document.getElementById("out");
+  const log = [];
+  const html = "<!doctype html><meta charset=utf-8><title>t</title><h1>cors probe</h1>";
+
+  async function tryUpload(name, url, buildBody, headers) {
+    try {
+      const fd = buildBody();
+      const res = await fetch(url, { method: "POST", body: fd, headers: headers || {} });
+      const t = await res.text();
+      log.push(name + ": HTTP " + res.status + " | " + t.slice(0, 200));
+    } catch (e) {
+      log.push(name + ": FETCH-ERROR " + (e && e.message ? e.message : String(e)));
+    }
+  }
+
+  await tryUpload("file.io", "https://file.io/?expires=1d",
+    () => { const fd = new FormData(); fd.append("file", new Blob([html], { type: "text/html" }), "probe.html"); return fd; });
+  await tryUpload("0x0.st", "https://0x0.st/",
+    () => { const fd = new FormData(); fd.append("file", new Blob([html], { type: "text/html" }), "probe.html"); return fd; });
+  await tryUpload("tmpfiles", "https://tmpfiles.org/api/v1/upload",
+    () => { const fd = new FormData(); fd.append("file", new Blob([html], { type: "text/html" }), "probe.html"); return fd; });
+
+  out.textContent = log.join("\n\n");
+})();
+</script>
