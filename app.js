@@ -261,6 +261,17 @@
     d.hidden = !d.hidden;
   };
 
+  document.querySelectorAll(".prompt").forEach((b) => {
+    b.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(b.dataset.prompt);
+        toast("已复制提示词：" + b.dataset.prompt);
+      } catch (_) {
+        toast("复制失败，请长按手动复制", true);
+      }
+    };
+  });
+
   renderList();
   renderPreview();
   loadDemo();

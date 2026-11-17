@@ -32,6 +32,12 @@
     <label for="trigger-input">自定义触发词（逗号分隔，留空则用默认）：</label><br>
     <input id="trigger-input" type="text" value="导出,导出HTML,导出html,导出网页,导出txt,导出TXT,导出文本,导出对话,导出记录,导出当前对话,/导出,#导出,/export">
     <p class="hint">① 改完触发词，把上面的书签链接<strong>重新拖一次</strong>才生效；② DeepSeek 页面整页刷新后，再点一次书签即可恢复自动触发。</p>
+    <div class="prompts">
+      <span>推荐提示词（点一下复制）：</span>
+      <button class="prompt" data-prompt="导出">导出</button>
+      <button class="prompt" data-prompt="导出当前对话，并在回复里列出接下来的操作步骤">导出当前对话，并列出后续操作</button>
+      <button class="prompt" data-prompt="导出txt">导出txt</button>
+    </div>
   </div>
 </section>
 

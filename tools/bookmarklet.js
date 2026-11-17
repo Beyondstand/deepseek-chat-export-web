@@ -286,9 +286,7 @@
     var low = t.toLowerCase();
     for (var i = 0; i < TRIGGERS.length; i++) {
       var k = String(TRIGGERS[i]).toLowerCase();
-      if (low === k) return true;
-      if (low.indexOf(k + " ") === 0 || low.indexOf(k + "，") === 0
-        || low.indexOf(k + "。") === 0 || low.indexOf(k + "\n") === 0) return true;
+      if (low.indexOf(k) === 0) return true; // 以触发词开头即触发（可跟自然语言补充说明）
     }
     return false;
   }
