@@ -211,8 +211,11 @@
 
   // ---------------- 书签链接生成 ----------------
 
+  const DEFAULT_TRIGGERS = ["导出", "导出HTML", "导出html", "导出网页", "导出txt", "导出TXT",
+    "导出文本", "导出对话", "导出记录", "导出当前对话", "/导出", "#导出", "/export"];
+
   async function setupBookmarkletLink() {
-    const link = $("#bm-link"), srcBox = $("#bm-code");
+    const link = $("#bm-link"), srcBox = $("#bm-code"), input = $("#trigger-input");
     let src = "";
     try { src = await (await fetch("tools/bookmarklet.js")).text(); }
     catch (_) {
@@ -222,9 +225,17 @@
     }
     srcBox.textContent = src;
     const toolUrl = location.origin + location.pathname;
-    const code = src.split("__TOOL_URL__").join(toolUrl);
-    link.href = "javascript:" + encodeURIComponent(code);
-    link.style.display = "";
+    const build = () => {
+      const custom = (input.value || "").split(/[,，]/).map((s) => s.trim()).filter(Boolean);
+      const triggers = custom.length ? custom : DEFAULT_TRIGGERS;
+      const code = src.split("__TOOL_URL__").join(toolUrl)
+                      .split("__TRIGGERS_JSON__").join(JSON.stringify(triggers));
+      link.href = "javascript:" + encodeURIComponent(code);
+      link.style.display = "";
+    };
+    build();
+    let timer = null;
+    input.addEventListener("input", () => { clearTimeout(timer); timer = setTimeout(build, 300); });
   }
 
   // ---------------- 演示模式 ----------------

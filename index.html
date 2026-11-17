@@ -26,6 +26,13 @@
     <pre id="bm-code" class="code"></pre>
   </details>
   <p class="hint">第一次用？先 <a href="?demo=1">打开演示模式</a> 看看导出效果。</p>
+  <div class="adv">
+    <h3>💬 聊天内一句话导出（点过书签后持续生效）</h3>
+    <p>在 DeepSeek 输入框发送触发词（默认 <code>导出</code>），本轮回答结束后会<strong>自动把当前对话下载为 HTML</strong> 并在页面右下角弹出确认；发送 <code>导出txt</code> 则下载 TXT。触发词会作为普通消息发给模型（模型回一句无关的话是正常的）。</p>
+    <label for="trigger-input">自定义触发词（逗号分隔，留空则用默认）：</label><br>
+    <input id="trigger-input" type="text" value="导出,导出HTML,导出html,导出网页,导出txt,导出TXT,导出文本,导出对话,导出记录,导出当前对话,/导出,#导出,/export">
+    <p class="hint">① 改完触发词，把上面的书签链接<strong>重新拖一次</strong>才生效；② DeepSeek 页面整页刷新后，再点一次书签即可恢复自动触发。</p>
+  </div>
 </section>
 
 <main class="layout">

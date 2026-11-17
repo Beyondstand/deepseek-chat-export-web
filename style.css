@@ -27,6 +27,18 @@ body {
 .setup ol { margin: 6px 0; padding-left: 22px; }
 .setup li { margin: 4px 0; }
 .hint { color: #6b7280; font-size: 13px; margin-bottom: 0; }
+.adv { margin-top: 14px; border-top: 1px dashed #e5e7eb; padding-top: 12px; }
+.adv h3 { margin: 0 0 6px; font-size: 14px; }
+.adv label { font-size: 13px; color: #374151; }
+.adv input {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
 .code {
   background: #0b1220;
   color: #a5f3fc;
