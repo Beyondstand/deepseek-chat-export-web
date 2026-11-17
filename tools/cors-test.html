@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>CORS 探测</title>
+<pre id="out">RUNNING…</pre>
+<script>
+(async () => {
+  const out = document.getElementById('out');
+  try {
+    const res = await fetch('https://chat.deepseek.com/api/v0/chat_session/fetch_page?count=1&lte_cursor.pinned=false', {
+      headers: { 'Authorization': 'Bearer dummy-token-for-cors-check', 'Accept': 'application/json' }
+    });
+    const t = await res.text();
+    out.textContent = 'HTTP ' + res.status + '\n' + t.slice(0, 300);
+  } catch (e) {
+    out.textContent = 'FETCH-ERROR: ' + (e && e.message ? e.message : String(e));
+  }
+})();
+</script>

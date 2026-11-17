@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeepSeek 会话导出工具</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>DeepSeek 会话导出工具</h1>
+  <p>在 DeepSeek 网页版点一下书签，会话就出现在这里 —— 导出为 <b>HTML</b> / <b>TXT</b> 文件。</p>
+</header>
+
+<section class="card setup">
+  <h2>三步上手</h2>
+  <ol>
+    <li>登录 <a href="https://chat.deepseek.com" target="_blank" rel="noopener">chat.deepseek.com</a></li>
+    <li>把 <a id="bm-link" href="#" style="display:none">📚 「DeepSeek 一键导出」书签</a> 拖到浏览器书签栏
+      （<a id="bm-toggle" href="#">手动创建？</a>）</li>
+    <li>在 DeepSeek 页面点击该书签，本页面自动收到你的全部会话</li>
+  </ol>
+  <details id="bm-details" hidden>
+    <summary>手动创建书签（拖拽不方便时）</summary>
+    <p>新建一个书签，名称随意，把下面框里的全部代码粘贴到「网址 / URL」栏保存：</p>
+    <pre id="bm-code" class="code"></pre>
+  </details>
+  <p class="hint">第一次用？先 <a href="?demo=1">打开演示模式</a> 看看导出效果。</p>
+</section>
+
+<main class="layout">
+  <aside class="card list-card">
+    <div class="list-head">
+      <h2>会话列表</h2>
+      <span id="stats" class="stats"></span>
+    </div>
+    <div id="session-list"></div>
+    <div class="list-actions">
+      <button id="btn-all-html" class="primary">全部导出 HTML</button>
+      <button id="btn-all-txt">全部导出 TXT</button>
+    </div>
+  </aside>
+  <section class="card preview-card">
+    <div id="preview" class="preview"></div>
+  </section>
+</main>
+
+<section class="card fallback">
+  <h2>没有书签脚本？兜底方案</h2>
+  <p>把 <b>DeepSeek 导出的 JSON</b>（控制台脚本产物、官方「导出全部历史对话」解压出的
+     conversations.json、接口原始响应都行）或<b>任意对话文本</b>粘贴进来：</p>
+  <textarea id="paste-box" rows="5" placeholder="粘贴 JSON 或对话文本…"></textarea>
+  <div class="fallback-actions">
+    <button id="btn-import-json" class="primary">按 JSON 导入</button>
+    <button id="btn-import-text">按纯文本导入</button>
+  </div>
+</section>
+
+<div id="toast"></div>
+
+<script src="shared.js"></script>
+<script src="demo-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
