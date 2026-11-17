@@ -18,6 +18,7 @@
   var TOOL_URL = "__TOOL_URL__";           // 工具页地址
   var TRIGGERS = __TRIGGERS_JSON__;        // 触发词数组，如 ["导出","导出txt","导出链接"]
   var WORKER_URL = "__WORKER_URL__";       // 可选：自建「读完即删」Worker；留空则用公共 TXT 临时服务
+  var HINT = __HINT_JSON__;                // true=发触发词时自动向模型附注「已导出」状态
 
   /* ---------------- 小工具 ---------------- */
 
@@ -335,6 +336,22 @@
     return false;
   }
 
+  var HINT_MARK = "【系统附注";
+
+  /** 发触发词时，在消息里附注一句「已导出」状态，让模型的回复与事实一致、列出后续步骤 */
+  function appendHint(body) {
+    var j;
+    try { j = JSON.parse(body); } catch (_) { return body; }
+    if (!j || typeof j.prompt !== "string") return body;
+    if (!matchTrigger(j.prompt)) return body;
+    if (j.prompt.indexOf(HINT_MARK) !== -1) return body;
+    j.prompt = j.prompt + "\n\n" + HINT_MARK + "（由导出工具添加）】本轮对话已通过浏览器脚本自动导出为本地文件"
+      + "（HTML/TXT，位于浏览器下载目录）。请在回复中：① 简要确认导出已完成；"
+      + "② 用 2~3 条列出用户接下来可以做的操作（如打开下载的 HTML、发送「导出链接」获取临时在线链接、发送「导出txt」换纯文本）。"
+      + "不要编造未发生的事实。";
+    return JSON.stringify(j);
+  }
+
   var lastFire = { key: "", at: 0 };
 
   function exportCurrentChat(prompt, sidFromBody) {
@@ -385,6 +402,10 @@
       var url = typeof input === "string" ? input : (input && input.url) || "";
       var isCompletion = url.indexOf("/api/v0/chat/completion") !== -1;
       var body = isCompletion && init && typeof init.body === "string" ? init.body : "";
+      if (body && HINT) {
+        var hinted = appendHint(body);
+        if (hinted !== body) { init = Object.assign({}, init || {}, { body: hinted }); body = hinted; }
+      }
       return origFetch(input, init).then(function (res) {
         if (isCompletion && body) {
           res.clone().text().catch(function () {}).then(function () {

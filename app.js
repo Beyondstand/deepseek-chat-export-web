@@ -222,6 +222,10 @@
     try { return (localStorage.getItem("dsWorkerUrl") || "").trim(); } catch (_) { return ""; }
   };
 
+  const getHint = () => {
+    try { return localStorage.getItem("dsHint") !== "0"; } catch (_) { return true; }
+  };
+
   /** 公共方案：tmpfiles.org（TXT，60 分钟有效） */
   function uploadTmpfiles(text) {
     const fd = new FormData();
@@ -273,7 +277,8 @@
       const triggers = custom.length ? custom : DEFAULT_TRIGGERS;
       const code = src.split("__TOOL_URL__").join(toolUrl)
                       .split("__TRIGGERS_JSON__").join(JSON.stringify(triggers))
-                      .split("__WORKER_URL__").join(getWorkerUrl());
+                      .split("__WORKER_URL__").join(getWorkerUrl())
+                      .split("__HINT_JSON__").join(JSON.stringify(getHint()));
       link.href = "javascript:" + encodeURIComponent(code);
       link.style.display = "";
     };
@@ -286,6 +291,14 @@
       try { const v = localStorage.getItem("dsWorkerUrl"); if (v != null && v !== "") wInput.value = v; } catch (_) {}
       wInput.addEventListener("input", () => {
         try { localStorage.setItem("dsWorkerUrl", wInput.value.trim()); } catch (_) {}
+        build();
+      });
+    }
+    const hintBox = $("#hint-toggle");
+    if (hintBox) {
+      try { hintBox.checked = getHint(); } catch (_) {}
+      hintBox.addEventListener("change", () => {
+        try { localStorage.setItem("dsHint", hintBox.checked ? "1" : "0"); } catch (_) {}
         build();
       });
     }

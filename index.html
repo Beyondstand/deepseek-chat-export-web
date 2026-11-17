@@ -45,6 +45,7 @@
     <p class="hint">① 改完触发词，把上面的书签链接<strong>重新拖一次</strong>才生效；② DeepSeek 页面整页刷新后，再点一次书签即可恢复自动触发。</p>
     <label for="worker-url">在线链接 Worker 地址（可选；填写后「导出链接」生成 HTML 且被读取一次即删，详见 README）：</label><br>
     <input id="worker-url" type="text" value="https://ds-once.jrjbasjd.workers.dev" placeholder="https://你的名字.workers.dev">
+    <label class="hint-line"><input type="checkbox" id="hint-toggle" checked> 发触发词时自动向模型附注「已导出」状态，让它的回复变成相关的确认＋后续步骤清单（改后需重新拖一次书签）</label>
     <div class="prompts">
       <span>推荐提示词（点一下复制）：</span>
       <button class="prompt" data-prompt="导出">导出</button>
