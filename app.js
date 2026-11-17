@@ -283,7 +283,7 @@
 
     const wInput = $("#worker-url");
     if (wInput) {
-      try { wInput.value = localStorage.getItem("dsWorkerUrl") || ""; } catch (_) {}
+      try { const v = localStorage.getItem("dsWorkerUrl"); if (v != null && v !== "") wInput.value = v; } catch (_) {}
       wInput.addEventListener("input", () => {
         try { localStorage.setItem("dsWorkerUrl", wInput.value.trim()); } catch (_) {}
         build();

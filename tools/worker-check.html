@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<title>Worker 验证</title>
+<pre id="out">RUNNING…</pre>
+<script>
+(async () => {
+  const base = "https://ds-once.jrjbasjd.workers.dev";
+  const out = [];
+  const log = (s) => out.push(s);
+
+  try {
+    const r = await fetch(base + "/", { cache: "no-store" });
+    log("GET /        → " + r.status + " | " + (await r.text()).slice(0, 80));
+  } catch (e) { log("GET /        → FETCH-ERROR " + e.message); }
+
+  let url = "";
+  try {
+    const html = '<!doctype html><meta charset="utf-8"><title>verify</title><h1>worker check ok</h1>';
+    const r = await fetch(base + "/up", { method: "POST", body: html });
+    const j = await r.json().catch(() => null);
+    log("POST /up     → " + r.status + " | " + JSON.stringify(j));
+    url = j && j.url ? j.url : "";
+  } catch (e) { log("POST /up     → FETCH-ERROR " + e.message); }
+
+  if (url) {
+    try {
+      const g1 = await fetch(url);
+      log("GET link #1  → " + g1.status + " | ctype=" + g1.headers.get("content-type")
+          + " | body=" + (await g1.text()).slice(0, 80));
+    } catch (e) { log("GET link #1  → FETCH-ERROR " + e.message); }
+    try {
+      const g2 = await fetch(url);
+      log("GET link #2  → " + g2.status + " | body=" + (await g2.text()).slice(0, 80));
+    } catch (e) { log("GET link #2  → FETCH-ERROR " + e.message); }
+  }
+
+  document.getElementById("out").textContent = out.join("\n\n");
+})();
+</script>
