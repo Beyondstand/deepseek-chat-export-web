@@ -380,14 +380,43 @@
       });
   }
 
-  function onCompletion(body) {
-    var prompt = "", sid = "";
-    try {
-      var j = JSON.parse(body);
-      prompt = String(j.prompt || "");
-      sid = String(j.chat_session_id || j.session_id || "");
-    } catch (_) { return; }
-    if (!matchTrigger(prompt)) return;
+  // ---- 诊断徽章：实时显示监听器捕获情况（点一下可隐藏） ----
+  var capCount = 0;
+  function chip(text) {
+    var c = document.getElementById("dsx-chip");
+    if (!c) {
+      c = document.createElement("div");
+      c.id = "dsx-chip";
+      c.style.cssText = "position:fixed;left:16px;bottom:16px;z-index:2147483647;"
+        + "background:#111827;color:#e5e7eb;border-radius:8px;padding:6px 10px;font-size:11px;"
+        + "font-family:system-ui,-apple-system,'Segoe UI',sans-serif;opacity:.9;cursor:pointer;"
+        + "max-width:380px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+        + "box-shadow:0 2px 10px rgba(0,0,0,.35)";
+      c.title = "DeepSeek 导出监听状态（点击隐藏）";
+      c.onclick = function () { c.remove(); };
+      document.body.appendChild(c);
+    }
+    c.textContent = text;
+  }
+
+  /** 从请求体抽取 prompt（不依赖完整 JSON 结构，端点/字段变动也能工作） */
+  function extractPrompt(body) {
+    var m = String(body).match(/"prompt"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+    if (!m) return null;
+    try { return JSON.parse('"' + m[1] + '"'); } catch (_) { return m[1]; }
+  }
+
+  /** 任何 /api/v0/ 的 POST，只要请求体带 prompt 字段就视为「用户发消息」 */
+  function handleSend(body, transport) {
+    if (!body) return;
+    var prompt = extractPrompt(body) || "";
+    var sid = "";
+    var sm = String(body).match(/"chat_session_id"\s*:\s*"([^"]*)"/);
+    if (sm) sid = sm[1];
+    capCount++;
+    chip("ds导出 · 捕获#" + capCount + " via " + transport + " · "
+      + (prompt ? "prompt=" + prompt.slice(0, 16) : "无prompt字段"));
+    if (!prompt || !matchTrigger(prompt)) return;
     var now = Date.now();
     var key = sid + "|" + prompt;
     if (lastFire.key === key && now - lastFire.at < 15000) return;
@@ -396,35 +425,36 @@
   }
 
   // 只观察：请求发出后照原样进行，不影响页面自己的逻辑与流式渲染。
-  // DeepSeek 网页版的 API 客户端以 XMLHttpRequest 为主、fetch 为辅，两者都挂钩。
+  // 判定放宽：/api/v0/ 下的请求体含 "prompt" 字段即视为发消息（不锁定具体端点名）。
   if (!window.__dsBmPatched) {
     window.__dsBmPatched = true;
 
     // --- fetch ---
     window.fetch = async function (input, init) {
       var url = typeof input === "string" ? input : (input && input.url) || "";
-      var isCompletion = url.indexOf("/api/v0/chat/completion") !== -1;
-      var body = isCompletion && init && typeof init.body === "string" ? init.body : "";
+      var isV0 = url.indexOf("/api/v0/") !== -1;
+      var body = isV0 && init && typeof init.body === "string" ? init.body : "";
       var reqObj = null;
-      if (isCompletion && !body && typeof Request !== "undefined" && input instanceof Request) {
+      if (isV0 && !body && typeof Request !== "undefined" && input instanceof Request) {
         try { body = await input.clone().text(); } catch (_) {}
         reqObj = input;
       }
-      if (body && HINT) {
-        var hinted = appendHint(body);
-        if (hinted !== body) {
-          if (reqObj) { try { input = new Request(reqObj, { body: hinted }); } catch (_) {} }
-          else { init = Object.assign({}, init || {}, { body: hinted }); }
-          body = hinted;
+      if (body && /"prompt"\s*:/.test(body)) {
+        if (HINT) {
+          var hinted = appendHint(body);
+          if (hinted !== body) {
+            if (reqObj) { try { input = new Request(reqObj, { body: hinted }); } catch (_) {} }
+            else { init = Object.assign({}, init || {}, { body: hinted }); }
+            body = hinted;
+          }
         }
-      }
-      var res = await origFetch(input, init);
-      if (isCompletion && body) {
+        var res = await origFetch(input, init);
         res.clone().text().catch(function () {}).then(function () {
-          try { onCompletion(body); } catch (_) {}
+          try { handleSend(body, "fetch"); } catch (_) {}
         });
+        return res;
       }
-      return res;
+      return origFetch(input, init);
     };
 
     // --- XMLHttpRequest ---
@@ -432,12 +462,13 @@
     var origSend = XMLHttpRequest.prototype.send;
     XMLHttpRequest.prototype.open = function (method, url) {
       this.__dsUrl = String(url || "");
+      this.__dsMethod = String(method || "").toUpperCase();
       return origOpen.apply(this, arguments);
     };
     XMLHttpRequest.prototype.send = function (body) {
       var xhr = this;
-      var isCompletion = (xhr.__dsUrl || "").indexOf("/api/v0/chat/completion") !== -1;
-      if (isCompletion && typeof body === "string" && body) {
+      var isV0 = (xhr.__dsUrl || "").indexOf("/api/v0/") !== -1;
+      if (isV0 && typeof body === "string" && /"prompt"\s*:/.test(body)) {
         if (HINT) {
           try {
             var hinted = appendHint(body);
@@ -445,13 +476,14 @@
           } catch (_) {}
         }
         xhr.addEventListener("loadend", function () {
-          try { onCompletion(body); } catch (_) {}
+          try { handleSend(body, "XHR"); } catch (_) {}
         });
       }
       return origSend.call(this, body);
     };
 
-    // 诊断信号：确认监听已装好（若看不到这条，说明书签没在 DeepSeek 页面生效）
+    // 诊断信号：确认监听已装好（若看不到，说明书签没在 DeepSeek 页面生效）
+    chip("ds导出 · 监听中（发消息后这里显示捕获计数）");
     toast("✅ 导出监听已开启：发送「导出」即可自动保存（本页面整页刷新后需再点一次书签）");
   }
 
